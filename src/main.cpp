@@ -51,6 +51,7 @@
 
 #include "UnityEngine/Graphics.hpp"
 #include "PlatformDetector.hpp"
+#include "replayChecks.hpp"
 
 inline modloader::ModInfo modInfo = {
     MOD_ID, VERSION, GIT_COMMIT}; // Stores the ID and version of our mod, and
@@ -76,12 +77,19 @@ MAKE_HOOK_MATCH(OculusLoader_Initialize,
                 &Unity::XR::Oculus::OculusLoader::Initialize, bool,
                 Unity::XR::Oculus::OculusLoader *self) {
   // INFO("OculusLoader_Initialize hook called!");
+
+  // Prevent processing if replay is rendering.
+  RENDER_GUARD(OculusLoader_Initialize(self));
+
   auto settings = self->GetSettings();
   settings->___PhaseSync = true;
   return OculusLoader_Initialize(self);
 }
 
 void GraphicsTweaks::PerformancePreset::ApplySettings() {
+  // Prevent processing if replay is rendering.
+  RENDER_GUARD();
+
   bool isMainThread = BSML::MainThreadScheduler::CurrentThreadIsMainThread();
   if (!isMainThread) {
     INFO("Not on main thread, skipping PerformancePreset::ApplySettings");
@@ -221,6 +229,9 @@ MAKE_HOOK_MATCH(MainSystemInit_Init, &GlobalNamespace::MainSystemInit::Init,
   GraphicsTweaks::PerformancePreset::customPreset =
       &self->_settingsManager->settings;
 
+  // Prevent processing if replay is rendering.
+  RENDER_GUARD();
+
   GraphicsTweaks::PerformancePreset::ApplySettings();
 }
 
@@ -231,6 +242,9 @@ MAKE_HOOK_MATCH(SettingsApplicatorSO_ApplyGraphicSettings,
                 GlobalNamespace::SceneType sceneType) {
   INFO("SettingsApplicatorSO_ApplyGraphicSettings hook called!");
   SettingsApplicatorSO_ApplyGraphicSettings(self, settings, sceneType);
+
+  // Prevent processing if replay is rendering.
+  RENDER_GUARD();
 
   bool distortionsUsed =
       getGraphicsTweaksConfig().WallQuality.GetValue() == 2 ||
@@ -249,6 +263,9 @@ MAKE_HOOK_MATCH(SettingsApplicatorSO_ApplyGraphicSettings,
 MAKE_HOOK_MATCH(ConditionalActivation_Awake,
                 &GlobalNamespace::ConditionalActivation::Awake, void,
                 GlobalNamespace::ConditionalActivation *self) {
+  // Prevent processing if replay is rendering.
+  RENDER_GUARD(ConditionalActivation_Awake(self));
+
   auto name = self->get_gameObject()->get_name();
   // DEBUG("ConditionalActivation_Awake hook called! {}",
   //       self->get_gameObject()->get_name());
@@ -278,6 +295,9 @@ MAKE_HOOK_MATCH(SaberBurnmarkArea_Start,
                 GlobalNamespace::SaberBurnMarkArea *self) {
   DEBUG("SaberBurnmarkArea_Start");
   SaberBurnmarkArea_Start(self);
+
+  // Prevent processing if replay is rendering.
+  RENDER_GUARD();
 
   // Prevent processing if burnmarks are disabled
   bool isEnabled = getGraphicsTweaksConfig().Burnmarks.GetValue();
@@ -311,6 +331,9 @@ MAKE_HOOK_MATCH(SaberBurnmarkArea_OnEnable,
                 GlobalNamespace::SaberBurnMarkArea *self) {
   DEBUG("SaberBurnmarkArea_OnEnable");
 
+  // Prevent processing if burnmarks are disabled
+  RENDER_GUARD(SaberBurnmarkArea_OnEnable(self));
+
   if (self->_lineRenderers) {
     DEBUG("Line renderers count: {}", self->_lineRenderers.size());
     DEBUG("Line renderer 1 enabled: {}",
@@ -338,6 +361,10 @@ MAKE_HOOK_MATCH(SaberBurnmarkArea_OnDisable,
                 &GlobalNamespace::SaberBurnMarkArea::OnDisable, void,
                 GlobalNamespace::SaberBurnMarkArea *self) {
   DEBUG("SaberBurnmarkArea_OnDisable");
+
+  // Prevent processing if burnmarks are disabled
+  RENDER_GUARD(SaberBurnmarkArea_OnDisable(self));
+
   if (self->_lineRenderers) {
     DEBUG("Line renderers count: {}", self->_lineRenderers.size());
     DEBUG("Line renderer 1 enabled: {}",
@@ -363,7 +390,9 @@ MAKE_HOOK_MATCH(SaberBurnmarkArea_OnDisable,
 MAKE_HOOK_MATCH(SaberBurnmarkArea_LateUpdate,
                 &GlobalNamespace::SaberBurnMarkArea::LateUpdate, void,
                 GlobalNamespace::SaberBurnMarkArea *self) {
-                  
+  // Prevent processing if burnmarks are disabled
+  RENDER_GUARD(SaberBurnmarkArea_LateUpdate(self));
+
   if (!self->_sabers || self->_sabers.size() == 0) {
     return;
   }
@@ -534,6 +563,9 @@ MAKE_HOOK_MATCH(GameplayCoreInstaller_InstallBindings,
 
   GameplayCoreInstaller_InstallBindings(self);
 
+  // Prevent processing if replay is rendering.
+  RENDER_GUARD();
+
   if (getGraphicsTweaksConfig().FpsCounter.GetValue()) {
     UnityW<FPSCounterUIController> fpsCounterUIController = Object::Instantiate(
         Resources::FindObjectsOfTypeAll<FPSCounterUIController *>()[0]);
@@ -551,6 +583,9 @@ MAKE_HOOK_MATCH(MainFlowCoordinator_DidActivate,
   MainFlowCoordinator_DidActivate(self, firstActivation, addedToHierarchy,
                                   screenSystemEnabling);
   DEBUG("MainFlowCoordinator_DidActivate");
+
+  // Prevent processing if replay is rendering.
+  RENDER_GUARD();
 
   // Do not load the FPS counter if it's not needed
   // if (getGraphicsTweaksConfig().FpsCounterAdvanced.GetValue() &&

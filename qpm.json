@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/QuestPackageManager/QPM.Package/refs/heads/main/qpm.schema.json",
   "version": "0.2.0",
   "sharedDir": "shared",
   "dependenciesDir": "extern",
@@ -96,6 +97,11 @@
     {
       "id": "sombrero",
       "versionRange": "^0.1.43",
+      "additionalData": {}
+    },
+    {
+      "id": "conditional-dependencies",
+      "versionRange": "^0.3.0",
       "additionalData": {}
     }
   ]

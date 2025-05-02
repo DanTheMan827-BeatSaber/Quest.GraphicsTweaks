@@ -14,6 +14,7 @@
 #include "UnityEngine/QualitySettings.hpp"
 #include "beatsaber-hook/shared/utils/hooking.hpp"
 #include "PlatformDetector.hpp"
+#include "replayChecks.hpp"
 using namespace GlobalNamespace;
 
 SafePtrUnity<GlobalNamespace::VRRenderingParamsSetup> vrRenderingParamsSetup;
@@ -25,6 +26,9 @@ MAKE_HOOK_MATCH(
     GlobalNamespace::VRRenderingParamsSetup* self
 ) {
     vrRenderingParamsSetup = self;
+
+    // Prevent processing if replay is rendering.
+    RENDER_GUARD();
 
     GraphicsTweaks::VRRenderingParamsSetup::Reload();
 }
